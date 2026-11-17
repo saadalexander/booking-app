@@ -20,14 +20,13 @@
   // Booking reminders and automations every 10 minutes (worker.ts → /api/cron/reminders)
   "triggers": { "crons": ["*/10 * * * *"] },
   __ROUTES__
-  // Non-secret settings. Secrets (ADMIN_PASSWORD, SESSION_SECRET, CRON_SECRET,
-  // TOKEN_ENCRYPTION_KEY, GOOGLE_CLIENT_SECRET) are set with `wrangler secret put` / the setup script.
+  // Non-secret settings. Secrets (ADMIN_PASSWORD, SESSION_SECRET, CRON_SECRET, TOKEN_ENCRYPTION_KEY)
+  // are stored by the setup script. Without APP_URL the app uses the address it's opened on.
+  // Google keys are pasted in the dashboard (Google & email).
   // Safe mode: add "SAFE_MODE_REDIRECT_TO": "you@example.com" to send every email to you instead of clients.
   "vars": {
-    "APP_URL": "__APP_URL__",
-    "STORAGE_BACKEND": "r2",
-    "EMAIL_DELIVERY": "__EMAIL_DELIVERY__",
-    "GOOGLE_CLIENT_ID": "__GOOGLE_CLIENT_ID__"
+    __APP_URL__"STORAGE_BACKEND": "r2",
+    "EMAIL_DELIVERY": "gmail"
   },
   "observability": { "enabled": true }
 }

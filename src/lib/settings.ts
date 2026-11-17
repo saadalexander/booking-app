@@ -1,8 +1,15 @@
+import { redirect } from "next/navigation";
 import { prisma } from "./db";
 
+/** Settings, or null on a brand-new copy that hasn't been through the welcome screen yet. */
+export function findSettings() {
+  return prisma.settings.findUnique({ where: { id: 1 } });
+}
+
 export async function getSettings() {
-  const s = await prisma.settings.findUnique({ where: { id: 1 } });
-  if (!s) throw new Error("Settings missing — run `npm run setup -- local` (or `npm run setup -- cloudflare`)");
+  const s = await findSettings();
+  // A new copy: the owner fills in the basics on the dashboard's welcome screen (after signing in).
+  if (!s) redirect("/admin/welcome");
   return s;
 }
 

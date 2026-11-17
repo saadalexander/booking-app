@@ -71,6 +71,7 @@ export default function EventTypeForm({
 }) {
   const [state, action, pending] = useActionState(saveEventType, undefined);
   const [tab, setTab] = useState<SectionKey>("basics");
+  const [location, setLocation] = useState(v.locationType);
   const [hoursMode, setHoursMode] = useState<"shared" | "custom">(hasCustomHours ? "custom" : "shared");
   const [hours, setHours] = useState<Hours>(customHours);
   const [questions, setQuestions] = useState<Q[]>(v.questions);
@@ -146,15 +147,23 @@ export default function EventTypeForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <L label="Length (minutes)"><input name="durationMinutes" type="number" min={5} max={600} className="input" defaultValue={v.durationMinutes} required /></L>
             <L label="Location">
-              <select name="locationType" className="input" defaultValue={v.locationType}>
-                <option value="google_meet">Google Meet</option>
-                <option value="zoom">Zoom</option>
+              <select name="locationType" className="input" value={location} onChange={(e) => setLocation(e.target.value)}>
+                <option value="google_meet">Google Meet (a new link for each booking)</option>
+                <option value="zoom">Zoom (your meeting link)</option>
                 <option value="phone">Phone (you call them)</option>
                 <option value="in_person">In person</option>
               </select>
             </L>
           </div>
-          <L label="Location details (optional)" hint="e.g. an address for in-person sessions"><input name="locationDetail" className="input" defaultValue={v.locationDetail} /></L>
+          {location === "zoom" ? (
+            <L label="Your Zoom meeting link" hint="Zoom → Meetings → Personal Room → copy the invite link. Clients get it in their confirmation, calendar invite and reminders. Turn on the waiting room in Zoom so early arrivals wait.">
+              <input name="locationDetail" type="url" className="input" defaultValue={v.locationDetail} placeholder="https://us02web.zoom.us/j/1234567890?pwd=…" required />
+            </L>
+          ) : location === "in_person" ? (
+            <L label="Address" hint="Shown to clients in their confirmation and calendar invite."><input name="locationDetail" className="input" defaultValue={v.locationDetail} placeholder="Street, suburb" /></L>
+          ) : (
+            <input type="hidden" name="locationDetail" value={v.locationDetail} />
+          )}
           <Rows>
             <ToggleRow name="hidden" title="Hidden" desc="Not listed on your booking page. Anyone with the link can still book it." defaultChecked={v.hidden} />
           </Rows>
@@ -336,7 +345,7 @@ export default function EventTypeForm({
             <p className="text-sm text-stone-600">Connect MailerLite on the “Google &amp; email” page to add people who book this to a MailerLite group.</p>
           ) : (
             <>
-              <L label="Add people who book this to" hint="Joining the group starts any MailerLite automation it triggers (e.g. your ZION nurture). Cancelling removes them.">
+              <L label="Add people who book this to" hint="Joining the group starts any MailerLite automation it triggers (e.g. a welcome sequence). Cancelling removes them.">
                 <select name="mailerliteGroupId" className="input" defaultValue={v.mailerliteGroupId}>
                   <option value="">Don&apos;t send to MailerLite</option>
                   {v.mailerliteGroupId && !mailerliteGroups.some((g) => g.id === v.mailerliteGroupId) && <option value={v.mailerliteGroupId}>Group {v.mailerliteGroupId}</option>}

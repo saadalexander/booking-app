@@ -18,6 +18,8 @@ export default async function ManageBookingPage({ params, searchParams }: PagePr
   const policy = await clientCanChange(b);
   const start = DateTime.fromJSDate(b.startUtc, { zone: b.timezone });
   const cancelled = b.status === "cancelled";
+  const zoomLink = b.eventType.locationType === "zoom" ? b.eventType.locationDetail?.trim() : "";
+  const joinUrl = zoomLink && /^https?:\/\//.test(zoomLink) ? zoomLink : b.eventType.locationType === "google_meet" ? b.meetUrl : null;
   const isNew = sp.new === "1";
   const wasRescheduled = sp.rescheduled === "1";
   const hours = changeWindowHours(b.eventType, settings.defaultCancelWindowHours);
@@ -45,6 +47,12 @@ export default async function ManageBookingPage({ params, searchParams }: PagePr
           <Row label="Where">
             {LOCATION_LABELS[b.eventType.locationType] ?? b.eventType.locationType}
             {b.eventType.locationType === "phone" && b.phone ? ` — ${settings.ownerName} will call ${b.phone}` : ""}
+            {b.eventType.locationType === "in_person" && b.eventType.locationDetail ? ` — ${b.eventType.locationDetail}` : ""}
+            {!cancelled && joinUrl && (
+              <a href={joinUrl} target="_blank" rel="noreferrer" className="btn-brand mt-2 block w-fit rounded-lg px-3 py-1.5 text-sm font-medium">
+                Join {b.eventType.locationType === "zoom" ? "Zoom" : "Google Meet"}
+              </a>
+            )}
           </Row>
           <Row label="Who">{b.client.name}</Row>
         </dl>

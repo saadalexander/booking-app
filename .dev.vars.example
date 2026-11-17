@@ -1,0 +1,3 @@
+# The one thing the "Deploy to Cloudflare" button asks for: your dashboard password.
+# (Everything else is created automatically. Locally, `npm run setup -- local` writes .env.development.local.)
+ADMIN_PASSWORD=

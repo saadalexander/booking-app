@@ -17,7 +17,7 @@ import { render, TIMED } from "./workflow-text";
 
 const include = {
   client: { select: { name: true, email: true, phone: true } },
-  eventType: { select: { title: true, slug: true, neutralTitle: true, durationMinutes: true, locationType: true, cancelWindowHours: true, minNoticeMinutes: true } },
+  eventType: { select: { title: true, slug: true, neutralTitle: true, durationMinutes: true, locationType: true, locationDetail: true, cancelWindowHours: true, minNoticeMinutes: true } },
 } as const;
 
 type WorkflowRow = Awaited<ReturnType<typeof prisma.workflow.findMany>>[number];

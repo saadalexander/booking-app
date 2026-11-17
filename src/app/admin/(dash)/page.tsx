@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DateTime } from "luxon";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import GettingStarted from "./GettingStarted";
 
 const TABS = { upcoming: "Upcoming", past: "Past", cancelled: "Cancelled" } as const;
 
@@ -28,6 +29,7 @@ export default async function BookingsPage({ searchParams }: PageProps<"/admin">
 
   return (
     <div className="max-w-4xl">
+      <GettingStarted />
       <h1 className="text-2xl font-semibold">Bookings</h1>
       <div className="mt-4 flex gap-2">
         {Object.entries(TABS).map(([k, label]) => (

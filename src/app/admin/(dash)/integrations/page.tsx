@@ -5,16 +5,20 @@ import CalendarChoices from "./CalendarChoices";
 import MailerliteForm from "./MailerliteForm";
 import { removeMailerliteKey } from "../../mailerlite-actions";
 import { prisma } from "@/lib/db";
+import { googleClientFromEnv } from "@/lib/app-secrets";
+import { removeGoogleClientKeys } from "../../setup-actions";
+import GoogleClientForm from "./GoogleClientForm";
 
 const ERRORS: Record<string, string> = {
-  "not-configured": "Google isn't set up yet: GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing from .env.",
+  "not-configured": "Google isn't set up yet. Follow the steps below and paste your Google keys first.",
   state: "The connection attempt expired or didn't match. Please try again.",
   access_denied: "Google access wasn't allowed.",
 };
 
 export default async function IntegrationsPage({ searchParams }: PageProps<"/admin/integrations">) {
   const sp = await searchParams;
-  const [conn, settings] = await Promise.all([getConnection(), getSettings()]);
+  const [conn, settings, configured] = await Promise.all([getConnection(), getSettings(), googleConfigured()]);
+  const keysFromEnv = googleClientFromEnv();
   const safe = safeModeRecipient();
   const delivery = process.env.EMAIL_DELIVERY ?? "outbox";
 
@@ -38,7 +42,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/adm
       {safe && (
         <div className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
           <strong>Safe mode is on.</strong> Every email goes to <strong>{safe}</strong> instead of the client, and calendar events are created without
-          inviting anyone. Remove <code>SAFE_MODE_REDIRECT_TO</code> from <code>.env</code> when you go live.
+          inviting anyone. Remove <code>SAFE_MODE_REDIRECT_TO</code> (in <code>.env.development.local</code>, or in Cloudflare → your Worker → Settings → Variables) when you go live.
         </div>
       )}
       {sp.connected === "1" && <p className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">Google connected ✓</p>}
@@ -46,11 +50,8 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/adm
 
       <section className="rounded-xl bg-white p-5 ring-1 ring-stone-200">
         <h2 className="font-semibold">Google account</h2>
-        {!googleConfigured() ? (
-          <p className="mt-2 text-sm text-stone-600">
-            Waiting for the Google Cloud app. Add <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> to <code>.env</code> (redirect URI:{" "}
-            <code>{redirectUri()}</code>), then restart the app.
-          </p>
+        {!configured ? (
+          <GoogleClientForm redirectUri={redirectUri()} origin={new URL(redirectUri()).origin} />
         ) : conn ? (
           <div className="mt-2 space-y-3 text-sm">
             <p>
@@ -71,6 +72,14 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/adm
             <form action="/api/google/connect" method="get">
               <button className="btn-brand rounded-lg px-4 py-2 font-medium">Connect Google</button>
             </form>
+            <p className="text-xs text-stone-500">
+              If Google says “redirect_uri_mismatch”, add <code>{redirectUri()}</code> to your client&apos;s Authorised redirect URIs in Google Cloud.
+            </p>
+            {!keysFromEnv && (
+              <form action={removeGoogleClientKeys}>
+                <button className="text-xs text-stone-500 underline">Enter different Google keys</button>
+              </form>
+            )}
           </div>
         )}
       </section>
@@ -103,7 +112,7 @@ export default async function IntegrationsPage({ searchParams }: PageProps<"/adm
           <section className="rounded-xl bg-white p-5 ring-1 ring-stone-200">
         <h2 className="font-semibold">MailerLite</h2>
         <p className="mt-1 text-sm text-stone-600">
-          Adds people to a MailerLite group when they book, so your MailerLite sequences (like the ZION nurture) start automatically. Pick the group on each
+          Adds people to a MailerLite group when they book, so your MailerLite sequences (like a welcome sequence) start automatically. Pick the group on each
           booking type, under “MailerLite”.
         </p>
         {settings.mailerliteKey ? (

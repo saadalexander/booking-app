@@ -18,7 +18,7 @@ type SyncBooking = {
   phone: string | null;
   guests: string;
   client: { name: string; email: string };
-  eventType: { neutralTitle: string | null; locationType: string };
+  eventType: { neutralTitle: string | null; locationType: string; locationDetail?: string | null };
 };
 
 async function record(bookingId: string, data: { googleEventId?: string | null; meetUrl?: string | null; googleSyncError: string | null }) {
@@ -50,15 +50,17 @@ export async function syncBooked(b: SyncBooking, previous?: { id: string; google
     const s = await getSettings();
     const title = b.eventType.neutralTitle?.trim() || `Appointment with ${s.ownerName}`;
     const isPhone = b.eventType.locationType === "phone";
+    const detail = b.eventType.locationDetail?.trim() || "";
+    const zoomLink = b.eventType.locationType === "zoom" ? detail : "";
     const { eventId, meetUrl } = await createEvent({
       bookingId: b.id,
       summary: `${title} — ${b.client.name}`,
-      description: [`Booked through ${s.businessName}.`, ``, `Reschedule or cancel: ${appUrl()}/booking/${b.manageToken}`, `Owner details: ${appUrl()}/admin/bookings/${b.id}`].join("\n"),
+      description: [`Booked through ${s.businessName}.`, ``, ...(zoomLink ? [`Join Zoom: ${zoomLink}`, ``] : []), `Reschedule or cancel: ${appUrl()}/booking/${b.manageToken}`, `Owner details: ${appUrl()}/admin/bookings/${b.id}`].join("\n"),
       start: b.startUtc,
       end: b.endUtc,
       timezone: b.timezone,
       attendees: [b.client.email, ...parseJson<string[]>(b.guests, [])],
-      location: isPhone ? `Phone call — ${s.ownerName} calls ${b.phone ?? "the client"}` : undefined,
+      location: isPhone ? `Phone call — ${s.ownerName} calls ${b.phone ?? "the client"}` : zoomLink || (b.eventType.locationType === "in_person" ? detail : "") || undefined,
       withMeet: b.eventType.locationType === "google_meet",
     });
     await record(b.id, { googleEventId: eventId, meetUrl, googleSyncError: null });

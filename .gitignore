@@ -50,8 +50,7 @@ next-env.d.ts
 /.open-next
 /.wrangler
 .dev.vars*
+!.dev.vars.example
 /d1-seed
 /secrets
 
-# Your own Cloudflare config (made by `npm run setup -- cloudflare` from wrangler.example.jsonc)
-/wrangler.jsonc

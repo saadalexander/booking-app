@@ -6,7 +6,8 @@ import type { NextConfig } from "next";
 
 // CF_BUILD=1 (set by `npm run cf:build`) builds for Cloudflare Workers: the database module
 // switches from the local libSQL file (db-node) to Cloudflare D1 (db-cf).
-const cloudflare = process.env.CF_BUILD === "1";
+// Cloudflare's own builds (Workers Builds, used by the "Deploy to Cloudflare" button) set WORKERS_CI=1.
+const cloudflare = process.env.CF_BUILD === "1" || process.env.WORKERS_CI === "1";
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -21,6 +22,9 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: cloudflare ? [] : ["@libsql/client", "libsql"],
+  // The Workers bundle is made from the standalone build (OpenNext asks for it too; set here so
+  // Cloudflare's own build step produces it and the deploy step needn't build twice).
+  ...(cloudflare ? { output: "standalone" as const } : {}),
   // Cloudflare only: the Prisma workerd client imports its query-compiler .wasm through a loader with
   // a dynamic path, which makes file tracing pull in the whole project (57k files, ~19 MB gzipped —
   // over the Workers size limit). Nothing below is needed at runtime: dependencies are already

@@ -8,6 +8,47 @@ Each version lists what changed. Version numbers follow the pattern **major.mino
 
 To update your copy, see "Getting updates" in the [README](README.md).
 
+## 1.1.0 — 17 November 2026
+
+Setting up a new copy no longer needs Terminal.
+
+### New: set up in your browser
+- **Deploy to Cloudflare button.** It copies the app into your GitHub, creates your database and file
+  storage, and deploys it. The only thing you type is your dashboard password.
+- **Welcome screen** on first sign-in: business name, first name, email, timezone (picked from a
+  list) and brand colour (picked with a colour box). It also adds a Monday–Friday 9–5 schedule.
+- **Getting started list** on the dashboard until Google is connected and you have a booking type.
+- **Google keys in the dashboard.** Google & email walks you through Google Cloud step by step,
+  shows the addresses to copy with a Copy button, and has boxes for your Client ID and secret.
+- **Updates without Terminal.** On GitHub: Actions → "Get the latest version" → Run workflow.
+  Cloudflare redeploys and applies database changes by itself.
+- The site works out its own address, and creates its own internal secrets the first time it runs.
+  Copies set up with Terminal keep using their Cloudflare settings.
+
+### Fixed
+- **Zoom**: booking types set to Zoom now ask for your Zoom meeting link and include it in the
+  confirmation, reminders, the calendar invite and the client's booking page ("Join Zoom"). Before,
+  no link was sent. In-person addresses are now shown too.
+- **Setup script** (`npm run setup -- cloudflare`):
+  - It no longer fails at the build step when `npm run setup -- local` was never run (the missing
+    `.env` file).
+  - Answers are checked: "melbourne" becomes Australia/Melbourne, a brand colour must be a colour,
+    and a colour code is refused as the app's short name. Before, a wrong answer could make the
+    calendar and booking times break.
+  - It no longer asks for your workers.dev subdomain or Google keys.
+  - Your password is saved before deploying, and setup carries on if the deploy reports a problem
+    after uploading. Before, it stopped without saving the password.
+  - Running it again with `--force` reuses the database it already made.
+- Settings now has a timezone dropdown instead of a text box.
+- `npm install` works on a brand-new copy without a `.env` file.
+
+### For developers
+- New table `AppSecret` and column `Settings.siteUrl` (migration `0012_app_secrets`).
+- `worker.ts` fills in `SESSION_SECRET`, `CRON_SECRET`, `TOKEN_ENCRYPTION_KEY`, `APP_URL` and
+  `EMAIL_DELIVERY` when they aren't set. The cron no longer needs the `WORKER_SELF_REFERENCE`
+  binding.
+- `npm run deploy` (`scripts/ci-deploy.mjs`) is the Workers Builds deploy command.
+
 ## 1.0.1 — 13 November 2026
 
 - Fixed: putting a copy online (`npm run setup -- cloudflare` / `npm run update`) failed while
@@ -76,4 +117,3 @@ The first shareable release.
 - Google Calendar (clash checking, events with Meet links) and Gmail.
 - MailerLite: adds people who book a type to a group, with call details in custom fields; removes
   them when they cancel.
-

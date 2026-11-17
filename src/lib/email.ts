@@ -39,7 +39,7 @@ export interface BookingForEmail {
   phone: string | null;
   meetUrl?: string | null;
   client: { name: string; email: string };
-  eventType: { title: string; neutralTitle: string | null; durationMinutes: number; locationType: string; cancelWindowHours: number | null; minNoticeMinutes: number };
+  eventType: { title: string; neutralTitle: string | null; durationMinutes: number; locationType: string; locationDetail?: string | null; cancelWindowHours: number | null; minNoticeMinutes: number };
 }
 
 function neutralTitle(b: BookingForEmail, s: Settings) {
@@ -54,6 +54,9 @@ function when(b: BookingForEmail, tz = b.timezone) {
 function where(b: BookingForEmail) {
   if (b.eventType.locationType === "phone") return `Phone call — ${"we'll call you on " + (b.phone ?? "the number you provided")}`;
   const label = LOCATION_LABELS[b.eventType.locationType] ?? "Online";
+  const detail = b.eventType.locationDetail?.trim();
+  // Zoom: the owner's own meeting link. In person: the address.
+  if (detail && (b.eventType.locationType === "zoom" || b.eventType.locationType === "in_person")) return `${label}: ${detail}`;
   return b.meetUrl ? `${label}: ${b.meetUrl}` : `${label} — the joining link will be in your calendar invite`;
 }
 

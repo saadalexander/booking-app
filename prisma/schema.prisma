@@ -34,6 +34,16 @@ model Settings {
   builtInReminders         Boolean @default(true)
   /// MailerLite API key, encrypted (TOKEN_ENCRYPTION_KEY)
   mailerliteKey            String?
+  /// The site's public address, recorded automatically on Cloudflare when APP_URL isn't set
+  siteUrl                  String?
+}
+
+/// Secrets the app creates for itself when they aren't set in Cloudflare (one-click deploys),
+/// plus the Google OAuth client entered in the dashboard. Environment values always win.
+model AppSecret {
+  name      String   @id
+  value     String
+  createdAt DateTime @default(now())
 }
 
 model Schedule {

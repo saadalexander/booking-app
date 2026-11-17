@@ -1,0 +1,20 @@
+// Cloudflare config for the "Deploy to Cloudflare" button (see README). Cloudflare creates the
+// database and file storage named here; the app creates its own secrets on first use, and the only
+// thing you type is ADMIN_PASSWORD. Setting up with Terminal instead? `npm run setup -- cloudflare`
+// replaces this file with one for your account.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "booking-app",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "d1_databases": [{ "binding": "DB", "database_name": "booking-app", "migrations_dir": "d1-migrations" }],
+  "r2_buckets": [{ "binding": "UPLOADS", "bucket_name": "booking-app-uploads" }],
+  // Booking reminders and automations every 10 minutes (worker.ts → /api/cron/reminders)
+  "triggers": { "crons": ["*/10 * * * *"] },
+  // Keep variables you add in the Cloudflare dashboard (e.g. SAFE_MODE_REDIRECT_TO) across deploys.
+  "keep_vars": true,
+  "vars": { "STORAGE_BACKEND": "r2" },
+  "observability": { "enabled": true }
+}

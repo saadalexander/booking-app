@@ -49,7 +49,7 @@ const token = () => randomBytes(24).toString("base64url");
 
 const emailInclude = {
   client: { select: { name: true, email: true } },
-  eventType: { select: { title: true, neutralTitle: true, durationMinutes: true, locationType: true, cancelWindowHours: true, minNoticeMinutes: true } },
+  eventType: { select: { title: true, neutralTitle: true, durationMinutes: true, locationType: true, locationDetail: true, cancelWindowHours: true, minNoticeMinutes: true } },
 } as const;
 
 /** True if the client may still change (reschedule/cancel) this booking themselves. */

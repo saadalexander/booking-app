@@ -110,6 +110,9 @@ export async function saveEventType(_prev: { error?: string; ok?: boolean } | un
   const parsed = eventTypeSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { error: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("\n") };
   const d = parsed.data;
+  if (d.locationType === "zoom" && !/^https:\/\/\S+$/.test(d.locationDetail?.trim() ?? "")) {
+    return { error: "Add your Zoom meeting link (it starts with https://) under Basics → Your Zoom meeting link." };
+  }
   let questions: z.infer<typeof questionSchema>[];
   let consents: z.infer<typeof consentSchema>[];
   try {

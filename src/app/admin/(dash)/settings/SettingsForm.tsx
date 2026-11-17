@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import TimezoneSelect from "@/components/TimezoneSelect";
 import { saveSettings } from "../../actions";
 
 interface Values {
@@ -23,7 +24,7 @@ export default function SettingsForm({ values: v }: { values: Values }) {
       <F label="Your email (booking notifications)"><input name="ownerEmail" type="email" className="input" defaultValue={v.ownerEmail} required /></F>
       <F label="Tagline"><input name="tagline" className="input" defaultValue={v.tagline} /></F>
       <div className="grid gap-4 sm:grid-cols-3">
-        <F label="Your timezone"><input name="timezone" className="input" defaultValue={v.timezone} required /></F>
+        <F label="Your timezone"><TimezoneSelect name="timezone" defaultValue={v.timezone} /></F>
         <F label="Brand colour"><input name="brandColor" type="color" className="input h-10 !p-1" defaultValue={v.brandColor} /></F>
         <F label="Change window (hours)"><input name="defaultCancelWindowHours" type="number" min={0} className="input" defaultValue={v.defaultCancelWindowHours} /></F>
       </div>

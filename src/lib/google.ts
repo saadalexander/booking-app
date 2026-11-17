@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { DateTime } from "luxon";
 import { prisma } from "./db";
 import { decrypt, encrypt } from "./crypto";
+import { googleClient } from "./app-secrets";
 import { appUrl } from "./settings";
 import type { Busy } from "./slots";
 
@@ -33,8 +34,8 @@ export class GoogleError extends Error {
   }
 }
 
-export function googleConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+export async function googleConfigured() {
+  return Boolean(await googleClient());
 }
 
 export function redirectUri() {
@@ -45,9 +46,11 @@ export function safeModeRecipient() {
   return process.env.SAFE_MODE_REDIRECT_TO?.trim() || null;
 }
 
-export function authUrl(state: string, loginHint?: string) {
+export async function authUrl(state: string, loginHint?: string) {
+  const client = await googleClient();
+  if (!client) throw new GoogleError("Google isn't set up yet");
   const qs = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID!,
+    client_id: client.id,
     redirect_uri: redirectUri(),
     response_type: "code",
     scope: GOOGLE_SCOPES.join(" "),
@@ -61,10 +64,12 @@ export function authUrl(state: string, loginHint?: string) {
 }
 
 async function tokenRequest(body: Record<string, string>) {
+  const client = await googleClient();
+  if (!client) throw new GoogleError("Google isn't set up yet: add the Client ID and secret on the Google & email page");
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, ...body }),
+    body: new URLSearchParams({ client_id: client.id, client_secret: client.secret, ...body }),
   });
   const data = (await res.json()) as { access_token?: string; refresh_token?: string; expires_in?: number; scope?: string; id_token?: string; error?: string; error_description?: string };
   if (!res.ok || !data.access_token) throw new GoogleError(`Google token error: ${data.error_description ?? data.error ?? res.status}`, res.status);
