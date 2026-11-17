@@ -1,0 +1,33 @@
+// Template for your own wrangler.jsonc. `npm run setup -- cloudflare` fills this in for you and
+// writes wrangler.jsonc (which is git-ignored, so your settings never clash with updates).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "__WORKER_NAME__",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "__WORKER_NAME__" }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "__WORKER_NAME__",
+      "database_id": "__DATABASE_ID__",
+      "migrations_dir": "d1-migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "UPLOADS", "bucket_name": "__WORKER_NAME__-uploads" }],
+  // Booking reminders and automations every 10 minutes (worker.ts → /api/cron/reminders)
+  "triggers": { "crons": ["*/10 * * * *"] },
+  __ROUTES__
+  // Non-secret settings. Secrets (ADMIN_PASSWORD, SESSION_SECRET, CRON_SECRET,
+  // TOKEN_ENCRYPTION_KEY, GOOGLE_CLIENT_SECRET) are set with `wrangler secret put` / the setup script.
+  // Safe mode: add "SAFE_MODE_REDIRECT_TO": "you@example.com" to send every email to you instead of clients.
+  "vars": {
+    "APP_URL": "__APP_URL__",
+    "STORAGE_BACKEND": "r2",
+    "EMAIL_DELIVERY": "__EMAIL_DELIVERY__",
+    "GOOGLE_CLIENT_ID": "__GOOGLE_CLIENT_ID__"
+  },
+  "observability": { "enabled": true }
+}

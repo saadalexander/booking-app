@@ -1,0 +1,336 @@
+// Hybrid booking app — data model (phase 1).
+// SQLite: libSQL file locally, Cloudflare D1 in production.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+/// Same client for Cloudflare Workers (used only by the Cloudflare build via a module alias).
+generator client_cf {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma-cf"
+  runtime  = "workerd"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Settings {
+  id                       Int    @id @default(1)
+  businessName             String
+  ownerName                String
+  ownerEmail               String
+  timezone                 String
+  brandColor               String @default("#0f766e")
+  tagline                  String @default("")
+  defaultCancelWindowHours Int    @default(24)
+  /// Highest storage warning already emailed (0, 70 or 90 percent of the free R2 allowance)
+  storageWarnedLevel       Int    @default(0)
+  /// Dashboard sidebar look: dark | light (off-grey, like Calendly / Cal.com)
+  sidebarStyle             String @default("dark")
+  /// Send the built-in 24 h / 1 h reminder emails (turn off when using reminder automations instead)
+  builtInReminders         Boolean @default(true)
+  /// MailerLite API key, encrypted (TOKEN_ENCRYPTION_KEY)
+  mailerliteKey            String?
+}
+
+model Schedule {
+  id         String         @id @default(cuid())
+  name       String
+  timezone   String
+  isDefault  Boolean        @default(false)
+  source     String?
+  /// Set when this schedule is one booking type's own custom hours (not shared)
+  customForEventTypeId String? @unique
+  rules      ScheduleRule[]
+  overrides  DateOverride[]
+  eventTypes EventType[]
+}
+
+/// Weekly availability. weekday: 1 = Monday … 7 = Sunday. Minutes from local midnight.
+model ScheduleRule {
+  id          String   @id @default(cuid())
+  scheduleId  String
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  weekday     Int
+  startMinute Int
+  endMinute   Int
+}
+
+/// A date-specific change. Null start/end = unavailable all day.
+model DateOverride {
+  id          String   @id @default(cuid())
+  scheduleId  String
+  schedule    Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  date        String
+  startMinute Int?
+  endMinute   Int?
+}
+
+model EventType {
+  id                  String          @id @default(cuid())
+  slug                String          @unique
+  title               String
+  description         String          @default("")
+  durationMinutes     Int
+  hidden              Boolean         @default(false)
+  position            Int             @default(0)
+  categoryId          String?
+  category            Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /// MailerLite group people are added to when they book (starts your MailerLite automations)
+  mailerliteGroupId   String?
+  /// MailerLite field prefix, e.g. "zion_call" fills zion_call_date / zion_call_when / zion_call_link
+  mailerliteFieldPrefix String?
+  /// google_meet | zoom | phone | in_person
+  locationType        String          @default("google_meet")
+  locationDetail      String?
+  scheduleId          String
+  schedule            Schedule        @relation(fields: [scheduleId], references: [id])
+  bufferBeforeMinutes Int             @default(0)
+  bufferAfterMinutes  Int             @default(0)
+  minNoticeMinutes    Int             @default(0)
+  /// unlimited | rolling | rolling_window | range
+  periodType          String          @default("unlimited")
+  periodDays          Int?
+  periodStart         String?
+  periodEnd           String?
+  slotIntervalMinutes Int?
+  seats               Int?
+  dailyCap            Int?
+  firstSlotOnly       Boolean         @default(false)
+  optimizedSlots      Boolean         @default(false)
+  lockTimezone        Boolean         @default(false)
+  allowGuests         Boolean         @default(true)
+  /// hidden | optional | required
+  collectPhone        String          @default("hidden")
+  showNotes           Boolean         @default(true)
+  /// Title used in emails and calendar invites (health-neutral). Falls back to a generic title.
+  neutralTitle        String?
+  cancelWindowHours   Int?
+  priceCents          Int             @default(0)
+  currency            String          @default("aud")
+  /// JSON string[] — items the client ticks before booking
+  checklist           String          @default("[]")
+  /// JSON {key, label, required}[] — consent checkboxes
+  consents            String          @default("[]")
+  source              String?
+  questions           Question[]
+  bookings            Booking[]
+  links               SingleUseLink[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+/// A group of booking types, e.g. "Discovery calls" — shown as sections in the dashboard and booking page.
+model Category {
+  id          String      @id @default(cuid())
+  name        String
+  description String      @default("")
+  position    Int         @default(0)
+  eventTypes  EventType[]
+}
+
+model Question {
+  id          String    @id @default(cuid())
+  eventTypeId String
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  key         String
+  label       String
+  /// text | textarea | select | multiselect | phone | file
+  type        String
+  required    Boolean   @default(false)
+  /// JSON string[]
+  options     String    @default("[]")
+  position    Int       @default(0)
+}
+
+model Client {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  phone     String?
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
+  eventRegistrations EventRegistration[]
+}
+
+model Booking {
+  id                String         @id @default(cuid())
+  eventTypeId       String
+  eventType         EventType      @relation(fields: [eventTypeId], references: [id])
+  clientId          String
+  client            Client         @relation(fields: [clientId], references: [id])
+  startUtc          DateTime
+  endUtc            DateTime
+  timezone          String
+  /// confirmed | cancelled
+  status            String         @default("confirmed")
+  manageToken       String         @unique
+  answers           String         @default("{}")
+  consents          String         @default("{}")
+  checklistAcks     String         @default("[]")
+  guests            String         @default("[]")
+  notes             String?
+  phone             String?
+  cancelReason      String?
+  cancelledAt       DateTime?
+  cancelledBy       String?
+  rescheduledFromId String?
+  linkId            String?
+  reminder24hSentAt DateTime?
+  reminder1hSentAt  DateTime?
+  googleEventId     String?
+  meetUrl           String?
+  /// Last Google Calendar sync problem for this booking (null = in sync or not connected)
+  googleSyncError   String?
+  /// Last MailerLite sync problem for this booking (null = fine or not used)
+  mailerliteSyncError String?
+  /// Where the booking came from: null = this app, "cal.com" = imported
+  source            String?
+  /// The booking's id in its source system (Cal.com uid) — makes imports idempotent
+  externalId        String?
+  createdAt         DateTime       @default(now())
+  files             Upload[]
+  workflowSends     WorkflowSend[]
+
+  @@unique([source, externalId])
+  @@index([startUtc])
+  @@index([eventTypeId, startUtc])
+}
+
+model Upload {
+  id           String   @id @default(cuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  questionKey  String
+  originalName String
+  storedName   String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+}
+
+model SingleUseLink {
+  id          String    @id @default(cuid())
+  token       String    @unique
+  eventTypeId String
+  eventType   EventType @relation(fields: [eventTypeId], references: [id], onDelete: Cascade)
+  note        String?
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+/// Phase 1 outbox: every email is recorded here (and printed) instead of being sent.
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  kind      String
+  bookingId String?
+  /// logged (outbox only) | sent | failed
+  status    String   @default("logged")
+  /// Actual recipient when safe mode redirected the email
+  sentTo    String?
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+/// The owner's Google account (Calendar + Gmail). Single row.
+model GoogleConnection {
+  id                    Int      @id @default(1)
+  email                 String
+  /// AES-256-GCM encrypted refresh token
+  refreshToken          String
+  scopes                String
+  destinationCalendarId String   @default("primary")
+  /// JSON string[] of calendar ids checked for conflicts
+  conflictCalendarIds   String   @default("[\"primary\"]")
+  /// Short-lived Google access token (encrypted) and when it expires, shared by all servers
+  accessToken           String?
+  accessTokenExpires    DateTime?
+  connectedAt           DateTime @default(now())
+  lastError             String?
+}
+
+/// An automation: an email sent when something happens to a booking, or a set time before/after it.
+model Workflow {
+  id            String         @id @default(cuid())
+  name          String
+  active        Boolean        @default(true)
+  /// booking_created | booking_rescheduled | booking_cancelled | before_start | after_end
+  trigger       String
+  /// For before_start / after_end: how long before the start or after the end
+  offsetMinutes Int            @default(0)
+  /// client | owner
+  recipient     String         @default("client")
+  subject       String
+  body          String
+  /// JSON string[] of booking type ids; empty = every booking type
+  eventTypeIds  String         @default("[]")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sends         WorkflowSend[]
+}
+
+/// One automation sent for one booking (also stops it being sent twice).
+model WorkflowSend {
+  id         String   @id @default(cuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sentAt     DateTime @default(now())
+
+  @@unique([workflowId, bookingId])
+  @@index([bookingId])
+}
+
+/// A one-off group event on a set date (workshop, webinar, Q&A) that people register for.
+model GroupEvent {
+  id              String              @id @default(cuid())
+  slug            String              @unique
+  title           String
+  description     String              @default("")
+  startUtc        DateTime
+  endUtc          DateTime
+  /// Timezone the event is set in (shown to you); visitors see their own
+  timezone        String
+  /// google_meet | in_person | online_link
+  locationType    String              @default("google_meet")
+  locationDetail  String?
+  /// Seats; null = unlimited
+  capacity        Int?
+  /// draft | published | cancelled
+  status          String              @default("published")
+  googleEventId   String?
+  meetUrl         String?
+  googleSyncError String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  registrations   EventRegistration[]
+
+  @@index([startUtc])
+}
+
+model EventRegistration {
+  id             String     @id @default(cuid())
+  eventId        String
+  event          GroupEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  clientId       String?
+  client         Client?    @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  name           String
+  email          String
+  phone          String?
+  timezone       String     @default("Australia/Melbourne")
+  /// registered | cancelled
+  status         String     @default("registered")
+  manageToken    String     @unique
+  reminderSentAt DateTime?
+  createdAt      DateTime   @default(now())
+
+  @@unique([eventId, email])
+  @@index([eventId, status])
+}

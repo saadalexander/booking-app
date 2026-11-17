@@ -1,0 +1,48 @@
+{
+  "name": "booking-app",
+  "version": "1.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "cf:build": "CF_BUILD=1 opennextjs-cloudflare build",
+    "cf:preview": "CF_BUILD=1 opennextjs-cloudflare build && wrangler dev",
+    "cf:deploy": "./scripts/cf-deploy.sh",
+    "postinstall": "prisma generate",
+    "setup": "node scripts/setup.mjs",
+    "update": "node scripts/setup.mjs update",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0",
+    "@opennextjs/cloudflare": "^1.20.16",
+    "@prisma/adapter-d1": "^7.10.1",
+    "@prisma/adapter-libsql": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "luxon": "^3.7.2",
+    "next": "16.4.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/luxon": "^3.7.6",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.5",
+    "prisma": "^7.10.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.0",
+    "wrangler": "^4.158.0"
+  }
+}
