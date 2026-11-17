@@ -1,6 +1,7 @@
 {
   "name": "booking-app",
   "version": "1.0.1",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -184,3 +184,8 @@ then tag it with `git tag v1.2.0 && git push --tags`.
 - Google and MailerLite keys are stored encrypted with `TOKEN_ENCRYPTION_KEY`. Keep that value
   unchanged once it's set, or you'll need to reconnect Google.
 - Uploaded files are private. Only the signed-in owner can open them.
+
+## Licence
+
+MIT: you can use, change, share and sell this, as long as you keep the [LICENSE](LICENSE) file.
+It comes with no warranty.
