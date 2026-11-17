@@ -1,0 +1,38 @@
+# Get the latest version of the booking app, without Terminal.
+#
+# On GitHub: open your repository → Actions → "Get the latest version" → Run workflow.
+# It merges the newest release from the original repository into yours. If your copy was made with
+# the "Deploy to Cloudflare" button, Cloudflare then rebuilds and redeploys it automatically
+# (database changes included). Your settings, bookings and clients live in your database and
+# aren't touched.
+name: Get the latest version
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge the latest version
+        env:
+          UPSTREAM: https://github.com/saadalexander/booking-app.git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream "$UPSTREAM"
+          git fetch --tags upstream main
+          before=$(node -p "require('./package.json').version")
+          # Where your copy and the new version changed the same lines (usually only wrangler.jsonc,
+          # which Cloudflare filled in for you), your lines are kept.
+          git merge --no-edit -X ours --allow-unrelated-histories -m "Get the latest version from booking-app" upstream/main
+          after=$(node -p "require('./package.json').version")
+          git push
+          echo "### Updated from $before to $after" >> "$GITHUB_STEP_SUMMARY"
+          echo "See CHANGELOG.md for what's new. Cloudflare redeploys your site in a few minutes." >> "$GITHUB_STEP_SUMMARY"
